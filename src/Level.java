@@ -1,9 +1,36 @@
+/** The following was Written by Jordan Harlow with assistance from Richard Hamm
+ *  While the code is inspired from several examples from dyn4j.org's examples it is
+ *  entirely original code
+ *  
+ *  This class will server as the basic template for our levels
+ *  By extending Level, we will have access to all the tools to create levels quickly
+ *  simply by overloading the initializeWorld() function
+ *  
+ *       __                      	
+ *     _/  |______    ____  ____  
+ *     \   __\__  \ _/ ___\/  _ \ 
+ *	|  |  / __ \\  \__(  <_> )
+ *	|__| (____  /\___  >____/  (:
+ *         	  \/     \/   
+ *         
+ *  Current To-Dos:
+ *  	Line 74 -
+ *  		I have no idea how to get text to print on my canvas
+ *  		We need a way to communicate with the player
+ *  
+ *  	Line 421
+ *  		I am trying to center the screen on the player ball
+ *  		just to test and see how it is. Can't get it to work, Richard?
+ **/
+
 package samples;
 
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
+//import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -12,12 +39,14 @@ import java.awt.image.BufferStrategy;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+//import javax.swing.JLabel; //should I be mixing these? Let's find out!
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import javax.swing.JFrame;
 
 import org.dyn4j.dynamics.Body;
@@ -41,34 +70,80 @@ public class Level extends JFrame
 	private static final long serialVersionUID = 7489010610517678448L;
 	public static final double SCALE = 45.0;
 	public static final double NANO_TO_BASE = 1.0e9;
-	private Point point;
+	protected Point point;
 	
 	/*  The picking results  */
-	private List<DetectResult> results = new ArrayList<DetectResult>();
+	protected List<DetectResult> results = new ArrayList<DetectResult>();
 	
-	protected Canvas canvas;
+	class GameCanvas extends Canvas
+	{
+		private static final long serialVersionUID = -2056634882817701012L;
+		
+		//This shit isn't working so whatever
+		public void paint(Graphics g)
+		{
+			Graphics2D g2;
+			g2 = (Graphics2D)g;
+			g2.drawString("Well fuck me sideways!", 25, 20);
+		}
+		
+	}
+	
+	protected GameCanvas canvas;
 	protected World world;
 	protected boolean stopped;
 	protected boolean reset = false;
 	protected long last;
+	/*  Only changed by the setAsPermanent Function, but is Public  */
+	protected int permanent_count = 0;
 	
 	/*  A mapping of contact id to UUID  */
-	private Map<ContactPointId, UUID> contact_ids = new HashMap<ContactPointId, UUID>();
+	protected Map<ContactPointId, UUID> contact_ids = new HashMap<ContactPointId, UUID>();
 	
 	protected static List<Body> game_bodies = new ArrayList<Body>();
 	protected UUID playerID;
 	protected UUID goalID;
 	
+	public static int randoNum(int s, int l)
+	{
+		Random randgen = new Random();
+		return randgen.nextInt(l - s + 1) + s;
+	}
+	
 	public static class GameObject extends Body 
 	{
+		
+		
 		protected Color color;
+		/*  Permanents are not deletable  */
+		protected boolean permanent;
 		
 		public GameObject() 
 		{
-			this.color = new Color(
-					(float)Math.random() * 0.5f + 0.5f,
-					(float)Math.random() * 0.5f + 0.5f,
-					(float)Math.random() * 0.5f + 0.5f);
+			permanent = false;
+			
+			/*  Set this bitch up to generate random shades of brown 
+			 *  I picked absolutely random numbers but it worked out  */
+			color = new Color(
+					(float)randoNum(70, 108) / 255.0f,
+					(float)randoNum(50, 67) / 255.0f,
+					(float)randoNum(15, 35) / 255.0f);
+		}
+		
+		public void setColor(Color c)
+		{
+			color = c;
+		}
+		
+		public void setAsPermanent(Level lev)
+		{
+			permanent = true;
+			lev.permanent_count++;
+		}
+		
+		public boolean isPermanent()
+		{
+			return permanent;
 		}
 		
 		public void render(Graphics2D fixtureGraphics) 
@@ -76,14 +151,13 @@ public class Level extends JFrame
 			AffineTransform original_transformation = fixtureGraphics.getTransform();
 			
 			AffineTransform new_transformation = new AffineTransform();
-			new_transformation.translate(this.transform.getTranslationX() * SCALE, this.transform.getTranslationY() * SCALE);
-			new_transformation.rotate(this.transform.getRotation());
+			new_transformation.translate(transform.getTranslationX() * SCALE, transform.getTranslationY() * SCALE);
+			new_transformation.rotate(transform.getRotation());
 			
 			fixtureGraphics.transform(new_transformation);
 
-			for (BodyFixture fixture : this.fixtures) 
+			for(BodyFixture fixture : fixtures) 
 			{
-
 				Convex convex = fixture.getShape();
 				/*  Uses Graphics2DRenderer file from dyn4j example source  */
 				Graphics2DRenderer.render(fixtureGraphics, convex, SCALE, color);
@@ -112,14 +186,14 @@ public class Level extends JFrame
 				System.out.println("The ball touched the thing!");
 				
 				/*  Player just lost the game, reset world  */
-				if(game_bodies.size() > 2)
+				if(game_bodies.size() > permanent_count)
 				{
 					System.out.println("Bruh you made contact before all the shit was gone!");
 					reset = true;
 				}
 				/*  Player wins the game  */
-				else if(game_bodies.size() == 2)
-				{
+				else
+				{	
 					System.out.println("You fuckin' Won!!!!");
 				}
 			}
@@ -162,10 +236,10 @@ public class Level extends JFrame
  
 	public Level() 
 	{
-		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		/*  Window Listener for funzies  */
-		this.addWindowListener(new WindowAdapter() 
+		addWindowListener(new WindowAdapter() 
 		{
 			@Override
 			public void windowClosing(WindowEvent e) 
@@ -178,50 +252,56 @@ public class Level extends JFrame
 		Dimension size = new Dimension(800, 600);
 		
 		/* Create a canvas to paint to  */
-		this.canvas = new Canvas();
-		this.canvas.setPreferredSize(size);
-		this.canvas.setMinimumSize(size);
-		this.canvas.setMaximumSize(size);
+		canvas = new GameCanvas();
+		canvas.setPreferredSize(size);
+		canvas.setMinimumSize(size);
+		canvas.setMaximumSize(size);
 		
 		/*  Mouse listener for the best of times  */
 		MouseAdapter ml = new GameObjectDeleter();
-		this.canvas.addMouseMotionListener(ml);
-		this.canvas.addMouseWheelListener(ml);
-		this.canvas.addMouseListener(ml);
-		
+		canvas.addMouseMotionListener(ml);
+		canvas.addMouseWheelListener(ml);
+		canvas.addMouseListener(ml);
+
 		/*  Add the canvas to the JFrame  */
-		this.add(this.canvas);
+		add(canvas);
 		
 		/*  Make it unresizable and pack it  */
-		this.setResizable(false);
-		this.pack();
-		this.stopped = false;
+		setResizable(false);
+		pack();
+		stopped = false;
 		
 		/*  Create World  */
-		this.initializeWorld();
+		initializeWorld();
 	}
 
+	/*  Pretty Much the only function you need to overload  */
 	protected void initializeWorld() 
 	{
-		this.world = new World();
+		world = new World();
 		
 		/*  Create the goal, a rectangle  */
 		Rectangle floorRect = new Rectangle(15.0, 1.0);
 		GameObject goal_floor = new GameObject();
 		goal_floor.addFixture(new BodyFixture(floorRect));
 		goal_floor.setMass(MassType.INFINITE);
-		goal_floor.translate(0.0, -4.0);
-		this.goalID = goal_floor.getId();
-		this.world.addBody(goal_floor);
+		goal_floor.translate(0.0, -6.0);
+		goal_floor.setAsPermanent(this);
+		goal_floor.setColor(Color.BLACK);
+		goalID = goal_floor.getId();
+		world.addBody(goal_floor);
 		
 		/*  Create the player, a circle  */
 		Circle cirShape = new Circle(0.6);
 		GameObject player = new GameObject();
 		player.addFixture(cirShape);
 		player.setMass(MassType.NORMAL);
-		player.translate(2.0, 20.0);
-		this.playerID = player.getId();
-		this.world.addBody(player);
+		player.translate(2.0, 13.0);
+		player.setAsPermanent(this);
+		Color playercolor = new Color(244 / 255.0f, 66 / 255.0f, 66 / 255.0f);
+		player.setColor(playercolor);
+		playerID = player.getId();
+		world.addBody(player);
 		
 		/*  Try some squares dude  */
 		for(int i = 0; i < 4; i++)
@@ -231,7 +311,7 @@ public class Level extends JFrame
 			rectangle.addFixture(rectShape);
 			rectangle.setMass(MassType.NORMAL);
 			rectangle.translate(2.0, i*2.0);
-			this.world.addBody(rectangle);	
+			world.addBody(rectangle);	
 		}
 		
 		Rectangle rectShape = new Rectangle(2.5, 2.5);
@@ -239,26 +319,26 @@ public class Level extends JFrame
 		rectangle.addFixture(rectShape);
 		rectangle.setMass(MassType.NORMAL);
 		rectangle.translate(0.0, 0.0);
-		this.world.addBody(rectangle);	
+		world.addBody(rectangle);
 		
 		/*  attach the contact listener  */
-		this.world.addListener(new WinDetection());
+		world.addListener(new WinDetection());
 	}
 	
 	public void start() 
 	{
-		this.last = System.nanoTime();
-		this.canvas.setIgnoreRepaint(true);
-		this.canvas.createBufferStrategy(2);
+		last = System.nanoTime();
+		canvas.setIgnoreRepaint(true);
+		canvas.createBufferStrategy(2);
 		
-		/* run a separate thread to do active rendering
-		 * because we don't want to do it on the EDT  */
+		/*  run a separate thread to do active rendering
+		 *  because we don't want to do it on the EDT  */
 		Thread thread = new Thread() 
 		{
 			public void run() 
 			{
-				/* perform an infinite loop stopped
-				 * render as fast as possible  */
+				/*  perform an infinite loop stopped
+				 *  render as fast as possible  */
 				while (!isStopped()) 
 				{
 					gameLoop();
@@ -273,63 +353,64 @@ public class Level extends JFrame
 	
 	protected void gameLoop() 
 	{	
-		game_bodies = this.world.getBodies();
-		Graphics2D graphics = (Graphics2D)this.canvas.getBufferStrategy().getDrawGraphics();
+		game_bodies = world.getBodies();
+		Graphics2D graphics = (Graphics2D)canvas.getBufferStrategy().getDrawGraphics();
 		
 		AffineTransform yFlip = AffineTransform.getScaleInstance(1, -1);
 		AffineTransform move = AffineTransform.getTranslateInstance(400, -300);
 		graphics.transform(yFlip);
 		graphics.transform(move);
 		
-		this.render(graphics);
+		render(graphics);
 		
 		graphics.dispose();
 		
-		BufferStrategy strategy = this.canvas.getBufferStrategy();
+		BufferStrategy strategy = canvas.getBufferStrategy();
 		
-		if (!strategy.contentsLost()) 
+		if(!strategy.contentsLost()) 
 		{
 			strategy.show();
 		}
 		
         Toolkit.getDefaultToolkit().sync();
         
-		this.results.clear();
+		results.clear();
         
-     		if (this.point != null) 
+     		if (point != null) 
      		{
      			/*  convert from screen space to world space coordinates  */
-     			double x =  (this.point.getX() - this.canvas.getWidth() / 2.0) / SCALE;
-     			double y = -(this.point.getY() - this.canvas.getHeight() / 2.0) / SCALE;
+     			double x =  (point.getX() - canvas.getWidth() / 2.0) / SCALE;
+     			double y = -(point.getY() - canvas.getHeight() / 2.0) / SCALE;
      			
      			/*  iterates through all bodies in the world and checks
      			 *  if they are within the mouse click  */
-     			for (int i = 0; i < this.world.getBodyCount(); i++) 
+     			for(int i = 0; i < world.getBodyCount(); i++) 
      			{
-    				Body b = this.world.getBody(i);
-    				if (b.contains(new Vector2(x, y)))
+    				Body b = world.getBody(i);
+    				/*  This line was written by Richard, at least the slick object casting was (;  */
+    				if(b.contains(new Vector2(x, y)) && !((GameObject) b).isPermanent()) 
     				{
-    					this.world.removeBody(b);
+    					world.removeBody(b);
 						/*	World.setUpdateRequired(true) basically has to get called any time
 						 *	you change the physics or world space, such as removing Bodies  */
-    					this.world.setUpdateRequired(true);    				
+    					world.setUpdateRequired(true);    				
     				}
     			}
      			/*	Reset point so we don't repeatedly call the same mouse point  */
-     			this.point = null;
+     			point = null;
      		}
      		
-     	if(this.reset == true)
+     	if(reset == true)
      	{
-     		this.initializeWorld();
-     		this.reset = false;
+     		initializeWorld();
+     		reset = false;
      	}
        
         long time = System.nanoTime();
-        long diff = time - this.last;
-        this.last = time;
+        long diff = time - last;
+        last = time;
     	double elapsedTime = diff / NANO_TO_BASE;
-        this.world.update(elapsedTime);
+        world.update(elapsedTime);
 	}
 
 	protected void render(Graphics2D level_graphics) 
@@ -338,27 +419,34 @@ public class Level extends JFrame
 		level_graphics.setColor(Color.WHITE);
 		level_graphics.fillRect(-400, -300, 800, 600);
 		
+		
+		
 		/*  Draw all the objects in the world  */
-		for (int i = 0; i < this.world.getBodyCount(); i++) 
+		for(int i = 0; i < world.getBodyCount(); i++) 
 		{
-			GameObject go = (GameObject) this.world.getBody(i);
+			GameObject go = (GameObject)world.getBody(i);
+			
+			//Attempted way to have screen centered on player, didn't work QQ
+			/*if(go.getId() == playerID)
+			{
+				level_graphics.translate(go.getWorldCenter().x, go.getWorldCenter().y);
+			}*/
 			go.render(level_graphics);
 		}
 	}
 
 	public synchronized void stop() 
 	{
-		this.stopped = true;
+		stopped = true;
 	}
 	
 	public synchronized boolean isStopped() 
 	{
-		return this.stopped;
+		return stopped;
 	}
 	
 	public static void main(String[] args) 
 	{
-		
 		Level level0 = new Level();
 		level0.setVisible(true);
 		level0.start();
