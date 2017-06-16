@@ -80,12 +80,12 @@ public class Level extends JFrame
 		private static final long serialVersionUID = -2056634882817701012L;
 		
 		//This shit isn't working so whatever
-		public void paint(Graphics g)
+		/*public void paint(Graphics g)
 		{
 			Graphics2D g2;
 			g2 = (Graphics2D)g;
 			g2.drawString("Well fuck me sideways!", 25, 20);
-		}
+		}*/
 		
 	}
 	
@@ -95,7 +95,7 @@ public class Level extends JFrame
 	protected boolean reset = false;
 	protected long last;
 	/*  Only changed by the setAsPermanent Function, but is Public  */
-	protected int permanent_count = 0;
+	protected int permanent_count;
 	
 	/*  A mapping of contact id to UUID  */
 	protected Map<ContactPointId, UUID> contact_ids = new HashMap<ContactPointId, UUID>();
@@ -183,7 +183,7 @@ public class Level extends JFrame
 			if((thegoodstuff.getBody1Id() == goalID && thegoodstuff.getBody2Id() == playerID) || 
 					(thegoodstuff.getBody1Id() == playerID && thegoodstuff.getBody2Id() == goalID))
 			{
-				System.out.println("The ball touched the thing!");
+				System.out.println("The ball touched the thing!" + permanent_count + " -> " + game_bodies.size());
 				
 				/*  Player just lost the game, reset world  */
 				if(game_bodies.size() > permanent_count)
@@ -216,7 +216,6 @@ public class Level extends JFrame
 			return true;
 		}
 	}
-
 	
 	private final class GameObjectDeleter extends MouseAdapter 
 	{
@@ -279,6 +278,7 @@ public class Level extends JFrame
 	protected void initializeWorld() 
 	{
 		world = new World();
+		permanent_count = 0;
 		
 		/*  Create the goal, a rectangle  */
 		Rectangle floorRect = new Rectangle(15.0, 1.0);
