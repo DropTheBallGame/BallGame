@@ -28,6 +28,7 @@ package samples;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 //import java.awt.Component;
@@ -48,6 +49,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.dynamics.BodyFixture;
@@ -79,13 +81,7 @@ public class Level extends JFrame
 	{
 		private static final long serialVersionUID = -2056634882817701012L;
 		
-		//This shit isn't working so whatever
-		/*public void paint(Graphics g)
-		{
-			Graphics2D g2;
-			g2 = (Graphics2D)g;
-			g2.drawString("Well fuck me sideways!", 25, 20);
-		}*/
+		
 		
 	}
 	
@@ -183,18 +179,20 @@ public class Level extends JFrame
 			if((thegoodstuff.getBody1Id() == goalID && thegoodstuff.getBody2Id() == playerID) || 
 					(thegoodstuff.getBody1Id() == playerID && thegoodstuff.getBody2Id() == goalID))
 			{
-				System.out.println("The ball touched the thing!" + permanent_count + " -> " + game_bodies.size());
+				// System.out.println("The ball touched the thing!" + permanent_count + " -> " + game_bodies.size());
 				
 				/*  Player just lost the game, reset world  */
 				if(game_bodies.size() > permanent_count)
 				{
-					System.out.println("Bruh you made contact before all the shit was gone!");
+					JOptionPane.showMessageDialog(null, "Bruh you made contact before all the shit was gone!", "You Lose!", JOptionPane.INFORMATION_MESSAGE);
+					// System.out.println("Bruh you made contact before all the shit was gone!");
 					reset = true;
 				}
 				/*  Player wins the game  */
 				else
 				{	
-					System.out.println("You fuckin' Won!!!!");
+					JOptionPane.showMessageDialog(null, "You fuckin' Won!!!!", "You Win!", JOptionPane.INFORMATION_MESSAGE);
+					// System.out.println("You fuckin' Won!!!!");
 				}
 			}
 			
@@ -418,8 +416,6 @@ public class Level extends JFrame
 		/*  Fill world with white color to draw objects over  */
 		level_graphics.setColor(Color.WHITE);
 		level_graphics.fillRect(-400, -300, 800, 600);
-		
-		
 		
 		/*  Draw all the objects in the world  */
 		for(int i = 0; i < world.getBodyCount(); i++) 
