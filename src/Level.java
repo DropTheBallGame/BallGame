@@ -2,7 +2,7 @@
  *  While the code is inspired from several examples from dyn4j.org's examples it is
  *  entirely original code
  *  
- *  This class will server as the basic template for our levels
+ *  This class will serve as the basic template for our levels
  *  By extending Level, we will have access to all the tools to create levels quickly
  *  simply by overloading the initializeWorld() function
  *  
@@ -14,11 +14,8 @@
  *         	  \/     \/   
  *         
  *  Current To-Dos:
- *  	Line 74 -
- *  		I have no idea how to get text to print on my canvas
- *  		We need a way to communicate with the player
  *  
- *  	Line 421
+ *  	Line 450
  *  		I am trying to center the screen on the player ball
  *  		just to test and see how it is. Can't get it to work, Richard?
  **/
@@ -28,9 +25,7 @@ package samples;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
-//import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -39,7 +34,7 @@ import java.awt.image.BufferStrategy;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-//import javax.swing.JLabel; //should I be mixing these? Let's find out!
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +43,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
+import org.dyn4j.collision.AxisAlignedBounds;
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.dynamics.BodyFixture;
 import org.dyn4j.dynamics.World;
@@ -79,22 +76,15 @@ public class Level extends JFrame
 	{
 		private static final long serialVersionUID = -2056634882817701012L;
 		
-		//This shit isn't working so whatever
-		/*public void paint(Graphics g)
-		{
-			Graphics2D g2;
-			g2 = (Graphics2D)g;
-			g2.drawString("Well fuck me sideways!", 25, 20);
-		}*/
-		
 	}
 	
 	protected GameCanvas canvas;
 	protected World world;
+	protected AxisAlignedBounds bounds;
 	protected boolean stopped;
-	protected boolean reset = false;
+	protected boolean reset, game_over = false;
 	protected long last;
-	/*  Only changed by the setAsPermanent Function, but is Public  */
+	/*  Only changed by the setAsPermanent Function */
 	protected int permanent_count;
 	
 	/*  A mapping of contact id to UUID  */
@@ -112,8 +102,6 @@ public class Level extends JFrame
 	
 	public static class GameObject extends Body 
 	{
-		
-		
 		protected Color color;
 		/*  Permanents are not deletable  */
 		protected boolean permanent;
@@ -129,7 +117,7 @@ public class Level extends JFrame
 					(float)randoNum(50, 67) / 255.0f,
 					(float)randoNum(15, 35) / 255.0f);
 		}
-		
+ 	
 		public void setColor(Color c)
 		{
 			color = c;
@@ -166,7 +154,7 @@ public class Level extends JFrame
 		}
 	}
 	
-	private class WinDetection extends ContactAdapter 
+	protected class WinDetection extends ContactAdapter 
 	{ 
 		@Override
 		public boolean begin(ContactPoint point) 
@@ -183,18 +171,21 @@ public class Level extends JFrame
 			if((thegoodstuff.getBody1Id() == goalID && thegoodstuff.getBody2Id() == playerID) || 
 					(thegoodstuff.getBody1Id() == playerID && thegoodstuff.getBody2Id() == goalID))
 			{
-				System.out.println("The ball touched the thing!" + permanent_count + " -> " + game_bodies.size());
+				//System.out.println("The ball touched the thing!" + permanent_count + " -> " + game_bodies.size());
 				
 				/*  Player just lost the game, reset world  */
 				if(game_bodies.size() > permanent_count)
 				{
-					System.out.println("Bruh you made contact before all the shit was gone!");
+					JOptionPane.showMessageDialog(null, "Bruh you made contact before all the shit was gone!", "You Lose!", JOptionPane.INFORMATION_MESSAGE);
+					//System.out.println("Bruh you made contact before all the shit was gone!");
 					reset = true;
 				}
 				/*  Player wins the game  */
 				else
 				{	
+					JOptionPane.showMessageDialog(null, "You fuckin' Won!!!!", "You Win!", JOptionPane.INFORMATION_MESSAGE);
 					System.out.println("You fuckin' Won!!!!");
+				
 				}
 			}
 			
@@ -277,7 +268,10 @@ public class Level extends JFrame
 	/*  Pretty Much the only function you need to overload  */
 	protected void initializeWorld() 
 	{
-		world = new World();
+		bounds = new AxisAlignedBounds(25, 30);
+		bounds.translate(0, 0);
+		world = new World(bounds);
+		//System.out.print("World bounds -> " + world.getBounds());
 		permanent_count = 0;
 		
 		/*  Create the goal, a rectangle  */
@@ -292,7 +286,7 @@ public class Level extends JFrame
 		world.addBody(goal_floor);
 		
 		/*  Create the player, a circle  */
-		Circle cirShape = new Circle(0.6);
+		Circle cirShape = new Circle(0.5);
 		GameObject player = new GameObject();
 		player.addFixture(cirShape);
 		player.setMass(MassType.NORMAL);
@@ -318,7 +312,7 @@ public class Level extends JFrame
 		GameObject rectangle = new GameObject();
 		rectangle.addFixture(rectShape);
 		rectangle.setMass(MassType.NORMAL);
-		rectangle.translate(0.0, 0.0);
+		rectangle.translate(-10.0, 0.0);
 		world.addBody(rectangle);
 		
 		/*  attach the contact listener  */
@@ -400,6 +394,21 @@ public class Level extends JFrame
      			point = null;
      		}
      		
+     	for(int i = 0; i < world.getBodyCount(); i++)
+ 		{
+ 			Body b = world.getBody(i);
+ 			if(bounds.isOutside(b) == true && !((GameObject)b).isPermanent())
+ 			{
+ 				if(((GameObject) b).getId() == playerID)
+ 				{
+ 					reset = true;
+ 				}
+ 				System.out.print("Shit's gone!");
+ 				world.removeBody(b);
+ 				world.setUpdateRequired(true);
+ 			}
+ 		}
+     		
      	if(reset == true)
      	{
      		initializeWorld();
@@ -419,7 +428,7 @@ public class Level extends JFrame
 		level_graphics.setColor(Color.WHITE);
 		level_graphics.fillRect(-400, -300, 800, 600);
 		
-		
+
 		
 		/*  Draw all the objects in the world  */
 		for(int i = 0; i < world.getBodyCount(); i++) 
@@ -427,10 +436,10 @@ public class Level extends JFrame
 			GameObject go = (GameObject)world.getBody(i);
 			
 			//Attempted way to have screen centered on player, didn't work QQ
-			/*if(go.getId() == playerID)
+			if(go.getId() == playerID)
 			{
-				level_graphics.translate(go.getWorldCenter().x, go.getWorldCenter().y);
-			}*/
+				//level_graphics.translate(go.getWorldCenter().x, go.getWorldCenter().y);
+			}
 			go.render(level_graphics);
 		}
 	}
