@@ -9,15 +9,9 @@
  *       __                      	
  *     _/  |______    ____  ____  
  *     \   __\__  \ _/ ___\/  _ \ 
- *	|  |  / __ \\  \__(  <_> )
- *	|__| (____  /\___  >____/  (:
- *         	  \/     \/   
- *         
- *  Current To-Dos:
- *  
- *  	Line 450
- *  		I am trying to center the screen on the player ball
- *  		just to test and see how it is. Can't get it to work, Richard?
+ *	    |  |  / __ \\  \__(  <_> )
+ *	    |__| (____  /\___  >____/  (:
+ *                \/     \/   
  **/
 
 package samples;
@@ -32,9 +26,9 @@ import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferStrategy; 
 import java.awt.Point;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,8 +36,8 @@ import java.util.UUID;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
+
+import javax.swing.*;
 
 import org.dyn4j.collision.AxisAlignedBounds;
 import org.dyn4j.dynamics.Body;
@@ -94,6 +88,8 @@ public class Level extends JFrame
 	protected UUID playerID;
 	protected UUID goalID;
 	
+	protected static int scheme;
+	
 	public static int randoNum(int s, int l)
 	{
 		Random randgen = new Random();
@@ -112,12 +108,9 @@ public class Level extends JFrame
 			
 			/*  Set this bitch up to generate random shades of brown 
 			 *  I picked absolutely random numbers but it worked out  */
-			color = new Color(
-					(float)randoNum(70, 108) / 255.0f,
-					(float)randoNum(50, 67) / 255.0f,
-					(float)randoNum(15, 35) / 255.0f);
+			color = SchemeColor();
 		}
- 	
+		
 		public void setColor(Color c)
 		{
 			color = c;
@@ -154,6 +147,138 @@ public class Level extends JFrame
 		}
 	}
 	
+	public static Color SchemeColor()
+	{
+		Color schemecolor = new Color(
+				(float)randoNum(70, 108) / 255.0f,
+				(float)randoNum(50, 67) / 255.0f,
+				(float)randoNum(15, 35) / 255.0f);
+		int seasoncolor = 1;
+		
+		switch(scheme)
+		{
+			case 0:  /*  Standard  */
+				schemecolor = new Color(
+						(float)randoNum(70, 108) / 255.0f,
+						(float)randoNum(50, 67) / 255.0f,
+						(float)randoNum(15, 35) / 255.0f);
+				
+				break;
+			case 1:  /* Spring  */
+				seasoncolor = randoNum(1, 4);
+				switch(seasoncolor)
+				{
+					case 1:
+						schemecolor = new Color(
+								(float)randoNum(0, 130) / 255.0f,
+								(float)randoNum(200, 255) / 255.0f,
+								(float)randoNum(0, 130) / 255.0f);
+						break;
+					case 2:
+						int yellowscheme = randoNum(200, 255);
+						schemecolor = new Color(
+								(float)yellowscheme / 255.0f,
+								(float)yellowscheme / 255.0f,
+								(float)randoNum(0, 150) / 255.0f);
+						break;
+					case 3:
+						int pinkscheme = randoNum(200, 255);
+						schemecolor = new Color(
+								(float)pinkscheme / 255.0f,
+								(float)randoNum(50, 130) / 255.0f,
+								(float)pinkscheme / 255.0f);
+						break;
+					case 4:
+						schemecolor = new Color(
+								(float)255 / 255.0f,
+								(float)randoNum(150, 225) / 255.0f,
+								(float)randoNum(150, 225) / 255.0f);
+				}
+				break;
+			case 2:  /*  Summer  */
+				seasoncolor = randoNum(1, 4);
+				switch(seasoncolor)
+				{
+					case 1:
+						int goldscheme = randoNum(100, 150);
+						schemecolor = new Color(
+								(float)goldscheme / 255.0f,
+								(float)goldscheme / 255.0f,
+								0);
+						break;
+					case 2:
+						schemecolor = new Color(
+								(float)randoNum(0, 50) / 255.0f,
+								(float)randoNum(50, 100) / 255.0f,
+								(float)randoNum(0, 50) / 255.0f);
+						break;
+					case 3:
+						int bluescheme = randoNum(200, 255);
+						schemecolor = new Color(
+								(float)randoNum(0, 150) / 255.0f,
+								(float)bluescheme / 255.0f,
+								(float)bluescheme / 255.0f);
+						break;
+					case 4:
+						schemecolor = new Color(
+								(float)randoNum(150, 255) / 255.0f,
+								0,
+								0);
+				}
+				break;
+			case 3:  /*  Autumn  */
+				seasoncolor = randoNum(1, 2);
+				switch(seasoncolor)
+				{
+					case 1:
+						schemecolor = new Color(
+								(float)randoNum(100, 255) / 255.0f,
+								(float)randoNum(0, 100) / 255.0f,
+								(float)randoNum(0, 60) / 255.0f);		
+						break;
+					case 2:
+						int yellowscheme = randoNum(200, 255);
+						schemecolor = new Color(
+								(float)yellowscheme / 255.0f,
+								(float)yellowscheme / 255.0f,
+								(float)randoNum(0, 150) / 255.0f);		
+				}
+				break;
+			case 4:  /*  Winter  */
+				seasoncolor = randoNum(1, 4);
+				switch(seasoncolor)
+				{
+					case 1:
+						int graycolor = randoNum(0, 255);
+						schemecolor = new Color(
+								(float)graycolor / 255.0f,
+								(float)graycolor / 255.0f,
+								(float)graycolor / 255.0f);
+						break;
+					case 2:
+						schemecolor = new Color(
+								(float)randoNum(0, 204) / 255.0f,
+								(float)randoNum(255, 255) / 255.0f,
+								(float)randoNum(204, 255) / 255.0f);
+						break;
+					case 3:
+						schemecolor = new Color(
+								0,
+								0,
+								(float)randoNum(100, 160) / 255.0f);
+						break;
+					case 4:
+						int purplescheme = randoNum(80, 130);
+						schemecolor = new Color(
+								(float)purplescheme / 255.0f,
+								0,
+								(float)purplescheme / 255.0f);
+				}
+		}
+		
+		return schemecolor;
+	}
+	
 	protected class WinDetection extends ContactAdapter 
 	{ 
 		@Override
@@ -184,7 +309,7 @@ public class Level extends JFrame
 				else
 				{	
 					JOptionPane.showMessageDialog(null, "You fuckin' Won!!!!", "You Win!", JOptionPane.INFORMATION_MESSAGE);
-					System.out.println("You fuckin' Won!!!!");
+					// System.out.println("You fuckin' Won!!!!");
 				
 				}
 			}
@@ -226,6 +351,9 @@ public class Level extends JFrame
  
 	public Level() 
 	{
+		/*  Set color scheme to Standard by default  */
+		scheme = 0;
+		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		/*  Window Listener for funzies  */
@@ -254,6 +382,7 @@ public class Level extends JFrame
 		canvas.addMouseListener(ml);
 
 		/*  Add the canvas to the JFrame  */
+		this.setJMenuBar(this.buildMenu());
 		add(canvas);
 		
 		/*  Make it unresizable and pack it  */
@@ -265,6 +394,105 @@ public class Level extends JFrame
 		initializeWorld();
 	}
 
+	protected JMenuBar buildMenu()
+	{
+		JMenuBar menu = new JMenuBar();
+		menu.setOpaque(true); //makes it visible
+        menu.setPreferredSize(new Dimension(300, 30)); //size of the menu bar
+        
+        JMenu gameMenu = new JMenu("Game");
+        JMenuItem restartItem = new JMenuItem("Restart Game");
+        JMenuItem restartLevel = new JMenuItem("Restart Level");
+        
+        JMenuItem exitItem = new JMenuItem("Exit");
+        
+        JMenu colorMenu = new JMenu("Schemes");
+        ButtonGroup colorGroup = new ButtonGroup();
+        
+        JRadioButtonMenuItem standard = new JRadioButtonMenuItem ("Standard");
+        standard.setSelected(true);
+        
+        standard.addActionListener((ActionEvent event) -> { 
+        	this.setScheme(0);
+        	});        
+        
+        JRadioButtonMenuItem spring = new JRadioButtonMenuItem ("Spring");
+        
+        spring.addActionListener((ActionEvent event) -> { 
+        	this.setScheme(1);
+        	});
+        
+        JRadioButtonMenuItem summer = new JRadioButtonMenuItem ("Summer");
+        summer.addActionListener((ActionEvent event) -> { 
+        	this.setScheme(2);
+        	});
+        
+        JRadioButtonMenuItem autumn = new JRadioButtonMenuItem ("Autumn");
+        autumn.addActionListener((ActionEvent event) -> { 
+        	this.setScheme(3);
+        	});
+        
+        JRadioButtonMenuItem winter = new JRadioButtonMenuItem ("Winter");
+        winter.addActionListener((ActionEvent event) -> { 
+        	this.setScheme(4);
+        	});
+ 
+        colorMenu.add(standard);
+        colorGroup.add(standard);
+        
+        colorMenu.add(spring);
+        colorGroup.add(spring);
+        
+        colorMenu.add(summer);
+        colorGroup.add(summer);
+        
+        colorMenu.add(autumn);
+        colorGroup.add(autumn);
+        
+        colorMenu.add(winter);
+        colorGroup.add(winter);
+        
+        // Events
+        restartItem.addActionListener((ActionEvent event)-> {
+        	this.restartGame(event);
+        });
+        
+        restartLevel.addActionListener((ActionEvent event) -> {
+        	this.restartLevel(event);
+        });
+        
+        exitItem.addActionListener((ActionEvent event) -> {
+            System.exit(0);
+        });
+
+        gameMenu.add(restartItem);
+        gameMenu.add(restartLevel);
+        gameMenu.add(exitItem);
+
+        menu.add(gameMenu);
+        menu.add(colorMenu);
+        
+        return menu;
+	}
+	
+	protected void restartGame(ActionEvent event)
+	{
+		//TODO: add reset code
+	}
+	
+	protected void restartLevel(ActionEvent event)
+	{
+		//TODO: add restartLevel code
+		reset = true;
+	}
+	
+	public void setScheme(int schemeNumber)
+	{
+		scheme = schemeNumber;
+		
+		//TODO: Set up color scheme change here.
+	}
+		
 	/*  Pretty Much the only function you need to overload  */
 	protected void initializeWorld() 
 	{
@@ -381,7 +609,6 @@ public class Level extends JFrame
      			for(int i = 0; i < world.getBodyCount(); i++) 
      			{
     				Body b = world.getBody(i);
-    				/*  This line was written by Richard, at least the slick object casting was (;  */
     				if(b.contains(new Vector2(x, y)) && !((GameObject) b).isPermanent()) 
     				{
     					world.removeBody(b);
