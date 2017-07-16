@@ -6,12 +6,12 @@
  *  By extending Level, we will have access to all the tools to create levels quickly
  *  simply by overloading the initializeWorld() function
  *  
- *       __                      	
- *     _/  |______    ____  ____  
- *     \   __\__  \ _/ ___\/  _ \ 
+ *           __                      	
+ *         _/  |______    ____  ____  
+ *         \   __\__  \ _/ ___\/  _ \ 
  *	    |  |  / __ \\  \__(  <_> )
  *	    |__| (____  /\___  >____/  (:
- *                \/     \/   
+ *                    \/     \/   
  **/
 
 package samples;
@@ -20,11 +20,13 @@ import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
-import java.awt.image.BufferStrategy; 
+import java.awt.image.BufferStrategy;
+
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -63,6 +65,11 @@ public class Level extends JFrame
 	public static final double NANO_TO_BASE = 1.0e9;
 	protected Point point;
 	
+	//Toolkit
+	Toolkit toolkit = Toolkit.getDefaultToolkit();
+	
+	//Picutres I guess
+	public Image r_arrow_image = toolkit.getImage("blue-arrow-png-22.png");
 	/*  The picking results  */
 	protected List<DetectResult> results = new ArrayList<DetectResult>();
 	
@@ -76,17 +83,18 @@ public class Level extends JFrame
 	protected World world;
 	protected AxisAlignedBounds bounds;
 	protected boolean stopped;
-	protected boolean reset, game_over = false;
+	protected boolean reset, game_over, restart = false;
 	protected long last;
 	/*  Only changed by the setAsPermanent Function */
-	protected int permanent_count;
+	protected static int permanent_count;
 	
 	/*  A mapping of contact id to UUID  */
 	protected Map<ContactPointId, UUID> contact_ids = new HashMap<ContactPointId, UUID>();
 	
 	protected static List<Body> game_bodies = new ArrayList<Body>();
-	protected UUID playerID;
-	protected UUID goalID;
+	protected static List<UUID> boost_blocks = new ArrayList<UUID>();
+	protected Body player;
+	protected Body goal;
 	
 	protected static int scheme;
 	
@@ -101,10 +109,14 @@ public class Level extends JFrame
 		protected Color color;
 		/*  Permanents are not deletable  */
 		protected boolean permanent;
+		protected boolean booster;
+		protected Image image;
 		
 		public GameObject() 
 		{
 			permanent = false;
+			booster = false;
+			image = null;
 			
 			/*  Set this bitch up to generate random shades of brown 
 			 *  I picked absolutely random numbers but it worked out  */
@@ -116,10 +128,10 @@ public class Level extends JFrame
 			color = c;
 		}
 		
-		public void setAsPermanent(Level lev)
+		protected void setAsPermanent(Level lev)
 		{
 			permanent = true;
-			lev.permanent_count++;
+			permanent_count++;
 		}
 		
 		public boolean isPermanent()
@@ -144,6 +156,40 @@ public class Level extends JFrame
 				Graphics2DRenderer.render(fixtureGraphics, convex, SCALE, color);
 			}
 			fixtureGraphics.setTransform(original_transformation);
+		}
+	}
+	
+	public static class BoosterBlock extends GameObject
+	{
+		protected char direction;
+		
+		public BoosterBlock()
+		{
+			booster = true;
+			permanent = true;
+			permanent_count++;
+			
+			direction = 'r';
+			boost_blocks.add(getId());
+		}
+		
+		public BoosterBlock(char d)
+		{
+			booster = true;
+			permanent = true;
+			permanent_count++;
+			direction = d;
+			boost_blocks.add(getId());
+		}
+		
+		public void addDirection(char d)
+		{
+			direction = d;
+		}
+		
+		public char getDirection()
+		{
+			return direction;
 		}
 	}
 	
@@ -293,23 +339,61 @@ public class Level extends JFrame
 			contact_ids.put(id, uuid);
 			
 			/*  If the two bodies that contact are the player and goal  */
-			if((thegoodstuff.getBody1Id() == goalID && thegoodstuff.getBody2Id() == playerID) || 
-					(thegoodstuff.getBody1Id() == playerID && thegoodstuff.getBody2Id() == goalID))
+			if((thegoodstuff.getBody1Id() == goal.getId() && thegoodstuff.getBody2Id() == player.getId()) || 
+					(thegoodstuff.getBody1Id() == player.getId() && thegoodstuff.getBody2Id() == goal.getId()))
 			{
 				//System.out.println("The ball touched the thing!" + permanent_count + " -> " + game_bodies.size());
 				
 				/*  Player just lost the game, reset world  */
 				if(game_bodies.size() > permanent_count)
 				{
+					//stop();
 					JOptionPane.showMessageDialog(null, "Bruh you made contact before all the shit was gone!", "You Lose!", JOptionPane.INFORMATION_MESSAGE);
 					//System.out.println("Bruh you made contact before all the shit was gone!");
 					reset = true;
+					//start();
 				}
 				/*  Player wins the game  */
 				else
 				{	
 					JOptionPane.showMessageDialog(null, "You fuckin' Won!!!!", "You Win!", JOptionPane.INFORMATION_MESSAGE);
 					// System.out.println("You fuckin' Won!!!!");
+					game_over = true;
+				
+				}
+			}
+			//If player ball touches a boost block, we're gonna fling them in the blocks direction
+			else if((thegoodstuff.getBody1Id() == player.getId() && boost_blocks.contains(thegoodstuff.getBody2Id()))
+				|| (thegoodstuff.getBody2Id() == player.getId() && boost_blocks.contains(thegoodstuff.getBody1Id())))
+			{
+				for(Body b : game_bodies)
+				{
+					if(((GameObject) b).booster == true && 
+						(b.getId() == thegoodstuff.getBody1Id() || b.getId() == thegoodstuff.getBody2Id()))
+					{
+						//System.out.println("BOOST ME SCOTTY! -> " + player.getForce());
+						
+						switch(((BoosterBlock) b).getDirection())
+						{
+							case 'r':	
+								player.clearAccumulatedForce();
+								player.applyForce(new Vector2(300.0, 0.0));
+								break;
+							case 'l':
+								player.clearAccumulatedForce();
+								player.applyForce(new Vector2(-300.0, 0.0));
+								break;
+							case 'u':
+								player.clearAccumulatedForce();
+								player.applyForce(new Vector2(0.0, 300.0));
+								break;
+							case 'd':
+								player.clearAccumulatedForce();
+								player.applyForce(new Vector2(0.0, -300.0));
+								break;
+						}
+						return false;
+					}
 				
 				}
 			}
@@ -477,20 +561,17 @@ public class Level extends JFrame
 	
 	protected void restartGame(ActionEvent event)
 	{
-		//TODO: add reset code
+		restart = true;
 	}
 	
 	protected void restartLevel(ActionEvent event)
 	{
-		//TODO: add restartLevel code
 		reset = true;
 	}
 	
 	public void setScheme(int schemeNumber)
 	{
 		scheme = schemeNumber;
-		
-		//TODO: Set up color scheme change here.
 	}
 		
 	/*  Pretty Much the only function you need to overload  */
@@ -510,19 +591,19 @@ public class Level extends JFrame
 		goal_floor.translate(0.0, -6.0);
 		goal_floor.setAsPermanent(this);
 		goal_floor.setColor(Color.BLACK);
-		goalID = goal_floor.getId();
-		world.addBody(goal_floor);
+		goal = goal_floor;
+		world.addBody(goal);
 		
 		/*  Create the player, a circle  */
 		Circle cirShape = new Circle(0.5);
-		GameObject player = new GameObject();
-		player.addFixture(cirShape);
-		player.setMass(MassType.NORMAL);
-		player.translate(2.0, 13.0);
-		player.setAsPermanent(this);
+		GameObject worldplayer = new GameObject();
+		worldplayer.addFixture(cirShape);
+		worldplayer.setMass(MassType.NORMAL);
+		worldplayer.translate(2.0, 13.0);
+		worldplayer.setAsPermanent(this);
 		Color playercolor = new Color(244 / 255.0f, 66 / 255.0f, 66 / 255.0f);
-		player.setColor(playercolor);
-		playerID = player.getId();
+		worldplayer.setColor(playercolor);
+		player = worldplayer;
 		world.addBody(player);
 		
 		/*  Try some squares dude  */
@@ -598,16 +679,16 @@ public class Level extends JFrame
         
 		results.clear();
         
-     		if (point != null) 
-     		{
-     			/*  convert from screen space to world space coordinates  */
-     			double x =  (point.getX() - canvas.getWidth() / 2.0) / SCALE;
-     			double y = -(point.getY() - canvas.getHeight() / 2.0) / SCALE;
+     	if (point != null) 
+     	{
+     		/*  convert from screen space to world space coordinates  */
+     		double x =  (point.getX() - canvas.getWidth() / 2.0) / SCALE;
+     		double y = -(point.getY() - canvas.getHeight() / 2.0) / SCALE;
      			
-     			/*  iterates through all bodies in the world and checks
-     			 *  if they are within the mouse click  */
-     			for(int i = 0; i < world.getBodyCount(); i++) 
-     			{
+     		/*  iterates through all bodies in the world and checks
+     		 *  if they are within the mouse click  */
+     		for(int i = 0; i < world.getBodyCount(); i++) 
+     		{
     				Body b = world.getBody(i);
     				if(b.contains(new Vector2(x, y)) && !((GameObject) b).isPermanent()) 
     				{
@@ -616,30 +697,44 @@ public class Level extends JFrame
 						 *	you change the physics or world space, such as removing Bodies  */
     					world.setUpdateRequired(true);    				
     				}
-    			}
+     		}
      			/*	Reset point so we don't repeatedly call the same mouse point  */
      			point = null;
-     		}
+     	}
      		
      	for(int i = 0; i < world.getBodyCount(); i++)
  		{
  			Body b = world.getBody(i);
  			if(bounds.isOutside(b) == true && !((GameObject)b).isPermanent())
- 			{
- 				if(((GameObject) b).getId() == playerID)
- 				{
- 					reset = true;
- 				}
- 				System.out.print("Shit's gone!");
+ 			{	
+ 				//System.out.print("Shit's gone!");
  				world.removeBody(b);
  				world.setUpdateRequired(true);
  			}
+ 			else if(bounds.isOutside(b) == true && ((GameObject) b).getId() == player.getId())
+			{
+					reset = true;
+			}
  		}
      		
      	if(reset == true)
      	{
      		initializeWorld();
      		reset = false;
+     	}
+     	
+     	if(game_over == true)
+		{
+     		stop();
+     		setVisible(false);
+			LevelOne.main(null);
+		}
+     	
+     	if(restart == true)
+     	{
+     		stop();
+     		setVisible(false);
+			Level.main(null);
      	}
        
         long time = System.nanoTime();
@@ -663,7 +758,7 @@ public class Level extends JFrame
 			GameObject go = (GameObject)world.getBody(i);
 			
 			//Attempted way to have screen centered on player, didn't work QQ
-			if(go.getId() == playerID)
+			if(go.getId() == player.getId())
 			{
 				//level_graphics.translate(go.getWorldCenter().x, go.getWorldCenter().y);
 			}
@@ -686,5 +781,6 @@ public class Level extends JFrame
 		Level level0 = new Level();
 		level0.setVisible(true);
 		level0.start();
+		
 	}
 }
