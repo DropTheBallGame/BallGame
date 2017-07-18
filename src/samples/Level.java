@@ -17,26 +17,11 @@
 package samples;
 
 
-import java.awt.BorderLayout;
-import java.awt.Button;
-import java.awt.Canvas;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Graphics2D;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.Toolkit;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferStrategy;
-
-import java.awt.Point;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -88,7 +73,8 @@ public class Level extends JFrame
 	protected World world;
 	protected AxisAlignedBounds bounds;
 	protected boolean stopped;
-	protected boolean reset, game_over, restart = false, showStartMenu =true;
+	protected boolean reset, game_over, restart = false;
+	protected boolean showStartMenu = true;
 	protected long last;
 	/*  Only changed by the setAsPermanent Function */
 	protected static int permanent_count;
@@ -206,7 +192,7 @@ public class Level extends JFrame
 				(float)randoNum(15, 35) / 255.0f);
 		int seasoncolor = 1;
 		
-		switch(scheme)
+		switch(Level.scheme)
 		{
 			case 0:  /*  Standard  */
 				schemecolor = new Color(
@@ -440,8 +426,13 @@ public class Level extends JFrame
  
 	public Level() 
 	{
+		this.initialize(true, 0);
+	}
+
+	protected void initialize(boolean showMenu,int scheme)
+	{
 		/*  Set color scheme to Standard by default  */
-		scheme = 0;
+		Level.scheme = scheme;
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
@@ -475,9 +466,10 @@ public class Level extends JFrame
 		
 		JButton buttonStart = new JButton("Start");
 		buttonStart.setPreferredSize(new Dimension(100,40));
-		
+		buttonStart.setLocation(400, 200);
 		buttonStart.addActionListener((ActionEvent event)-> {
 			this.getGlassPane().setVisible(false);
+			this.showStartMenu = false;
         	
         });
 		
@@ -498,14 +490,9 @@ public class Level extends JFrame
 		glass.add(buttonStart);
 		glass.add(buttonRules);
 		
-		
-		glass.setVisible(true);		
-		
+		glass.setVisible(showMenu);		
 		
 		this.getContentPane().add(canvas);
-		
-		//add(canvas);
-		
 		
 		/*  Make it unresizable and pack it  */
 		setResizable(false);
@@ -513,9 +500,18 @@ public class Level extends JFrame
 		stopped = false;
 		
 		/*  Create World  */
-		initializeWorld();
+		initializeWorld();		
+		
 	}
-
+	
+	public Level(boolean showMenu, int scheme)
+	{
+		this.showStartMenu = showMenu;
+		Level.scheme = scheme;
+		
+		this.initialize(showMenu, scheme);
+	}
+	
 	private void showTheRules() {
 		JOptionPane.showMessageDialog(null, 
 				"These are the rules. \n 1. Don't let the ball hit the bottom before everything is gone. \n\n2. That's the rules.", 
@@ -607,7 +603,7 @@ public class Level extends JFrame
 	protected void restartGame(ActionEvent event)
 	{
 		restart = true;
-		showStartMenu = false;
+		this.showStartMenu = false;
 	}
 	
 	protected void restartLevel(ActionEvent event)
@@ -676,6 +672,9 @@ public class Level extends JFrame
 	
 	public void start() 
 	{
+		this.setVisible(true);
+		
+		
 		last = System.nanoTime();
 		canvas.setIgnoreRepaint(true);
 		canvas.createBufferStrategy(2);
@@ -771,16 +770,14 @@ public class Level extends JFrame
      	
      	if(game_over == true)
 		{
-     		stop();
-     		setVisible(false);
-			LevelOne.main(null);
+     		this.goNextLevel();
 		}
      	
      	if(restart == true)
      	{
      		stop();
      		setVisible(false);
-			Level.main(null);
+     		start();
      	}
        
         long time = System.nanoTime();
@@ -788,6 +785,17 @@ public class Level extends JFrame
         last = time;
     	double elapsedTime = diff / NANO_TO_BASE;
         world.update(elapsedTime);
+	}
+	
+	protected void goNextLevel()
+	{
+		stop();
+ 		setVisible(false);
+ 		
+ 		Level next = new LevelOne(this.showStartMenu, Level.scheme);
+ 		next.start();
+		// LevelOne.main(new String[] {((Boolean)this.showStartMenu).toString(), ((Integer)Level.scheme).toString()});
+
 	}
 
 	protected void render(Graphics2D level_graphics) 
@@ -825,8 +833,6 @@ public class Level extends JFrame
 	public static void main(String[] args) 
 	{
 		Level level0 = new Level();
-		level0.setVisible(true);
-		level0.start();
-		
+		level0.start();		
 	}
 }

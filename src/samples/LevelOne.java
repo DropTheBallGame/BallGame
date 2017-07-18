@@ -20,6 +20,13 @@ public class LevelOne extends Level
 {
 	private static final long serialVersionUID = 8708508151341709791L;
 	
+	LevelOne(boolean showMenu, int scheme)
+	{
+		super(showMenu, scheme);
+	}
+	
+	
+	
 	protected void gameLoop() 
 	{	
 		game_bodies = world.getBodies();
@@ -161,7 +168,7 @@ public class LevelOne extends Level
 	
 	public static void main(String[] args) 
 	{
-		LevelOne level1 = new LevelOne();
+		LevelOne level1 = new LevelOne(Boolean.parseBoolean(args[0]),Integer.parseInt(args[1]));
 		level1.setVisible(true);
 		level1.start();
 	}
